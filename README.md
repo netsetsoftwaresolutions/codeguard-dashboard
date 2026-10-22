@@ -4,10 +4,9 @@ Next.js dashboard for accounts, organizations, projects, source uploads, reposit
 triage, comparisons, integrations, notifications, teams, plans and administration.
 
 ```bash
-corepack enable
-pnpm install --frozen-lockfile
+npm ci
 cp .env.example .env
-pnpm dev
+npm run dev
 ```
 
 Open http://localhost:3000. Set `API_INTERNAL_URL` to the API address (default
@@ -15,15 +14,15 @@ Open http://localhost:3000. Set `API_INTERNAL_URL` to the API address (default
 The API and scanner must be running to create scans and receive results.
 
 ```bash
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm start
+npm run typecheck
+npm test
+npm run build
+npm start
 ```
 
 ## Repository structure
 
-This is an independent repository: no pnpm workspace, private npm package, sibling checkout, or
+This is an independent repository: no workspace, private npm package, sibling checkout, or
 `@codeguard/*` dependency is required. API models and validation live in `src/contracts` as ordinary
 local source files. Each frontend owns its UI components in `src/components/primitives`.
 
@@ -50,7 +49,7 @@ shared mounted directory. Do not run an API production worker against an unrelat
 
 ## Configuration
 
-Use Node.js 22 (`nvm use`) and pnpm 9.15.0. Commit only `.env.example`; keep credentials in local `.env`
+Use Node.js 22 (`nvm use`) and npm 10 or newer. Commit only `.env.example`; keep credentials in local `.env`
 or your deployment's secret configuration. AI, SMTP and provider OAuth are optional. Subscription
 entitlements are implemented; online payment processing is not connected.
 

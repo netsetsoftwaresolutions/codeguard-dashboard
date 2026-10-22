@@ -8,10 +8,10 @@ CodeGuard API (NestJS, MongoDB-backed); the dashboard has no database of its own
 ## Running
 
 ```bash
-pnpm install
-pnpm infra:up                 # MongoDB + Redis for the API (see docker-compose.yml)
-pnpm dev:api                  # API on http://localhost:4000
-pnpm dev:web                  # dashboard on http://localhost:3000
+npm install
+docker compose -f ../codeguard-api/docker-compose.yml up -d --wait mongo redis                 # MongoDB + Redis for the API (see docker-compose.yml)
+(cd ../codeguard-api && npm run dev)                  # API on http://localhost:4000
+npm run dev                  # dashboard on http://localhost:3000
 ```
 
 | Env var | Default | Purpose |
@@ -22,9 +22,9 @@ pnpm dev:web                  # dashboard on http://localhost:3000
 Other commands (from the repo root):
 
 ```bash
-pnpm --filter @codeguard/web-dashboard typecheck   # tsc --noEmit
-pnpm --filter @codeguard/web-dashboard test        # vitest (jsdom)
-pnpm --filter @codeguard/web-dashboard build       # next build (output: 'standalone')
+npm run typecheck   # tsc --noEmit
+npm test        # vitest (jsdom)
+npm run build       # next build (output: 'standalone')
 ```
 
 The production server is `.next/standalone/apps/web-dashboard/server.js` (copy `.next/static` and `public` alongside it as usual for standalone output).

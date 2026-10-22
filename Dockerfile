@@ -1,12 +1,11 @@
 FROM node:22.20-bookworm-slim AS build
 WORKDIR /repo
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 ARG API_INTERNAL_URL=http://api:4000
 ENV API_INTERNAL_URL=$API_INTERNAL_URL
-RUN pnpm build
+RUN npm run build
 
 FROM node:22.20-bookworm-slim
 WORKDIR /app
