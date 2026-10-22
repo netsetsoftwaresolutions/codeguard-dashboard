@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+  .dark body {
+    background-color: #0b1020;
+    @apply text-slate-100;
+  }
+  ::selection {
+    @apply bg-brand-600/30;
+  }
+  :focus-visible {
+    outline-color: theme('colors.brand.500');
+  }
+}
+
+@layer components {
+  .code-block {
+    @apply overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 font-mono text-xs leading-relaxed text-slate-800 dark:border-ink-600 dark:bg-[#070b17] dark:text-slate-200;
+  }
+}
