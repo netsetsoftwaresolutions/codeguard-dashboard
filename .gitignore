@@ -1,12 +1,34 @@
+# Dependencies
 node_modules/
-dist/
+
+# Next.js / build output
 .next/
-coverage/
-release/
-data/
-!.env.example
-*.log
+out/
+build/
+dist/
 *.tsbuildinfo
+.vercel/
+
+# Tests
+coverage/
+
+# Env (keep .env.example tracked)
+.env
+.env.local
+.env.*.local
+
+# Logs and temp
+*.log
+*.bak
+*.tmp
+*.swp
+*~
+
+# OS
 .DS_Store
-tests/fixtures/*.zip
-config.bat
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.sublime-*
