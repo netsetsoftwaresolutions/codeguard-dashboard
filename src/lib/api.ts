@@ -131,6 +131,8 @@ export interface RequestOptions {
   query?: Record<string, QueryValue>;
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  /** Deadline for the full response, including its body. Defaults to 10 seconds. */
+  timeoutMs?: number;
   /** Do not redirect to /login on 401 (used by public pages probing the session). */
   skipAuthRedirect?: boolean;
 }
@@ -149,32 +151,46 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   }
   if (isMutating(method)) headers[CSRF_HEADER] = '1';
 
-  let res: Response;
+  const controller = new AbortController();
+  const signal = opts.signal ? AbortSignal.any([opts.signal, controller.signal]) : controller.signal;
+  const timeout = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), opts.timeoutMs ?? 10_000);
   try {
-    res = await fetch(buildUrl(path, opts.query), { method, headers, body, credentials: 'include', signal: opts.signal });
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') throw e;
-    throw new ApiError(0, 'Unable to reach the CodeGuard API. Check your connection or try again shortly.');
-  }
-
-  if (res.status === 401 && !opts.skipAuthRedirect) redirectToLogin();
-
-  const contentType = res.headers.get('content-type') ?? '';
-  if (!res.ok) {
-    let parsed: unknown = null;
+    let res: Response;
     try {
-      parsed = contentType.includes('json') ? await res.json() : await res.text();
-    } catch {
-      parsed = null;
+      res = await fetch(buildUrl(path, opts.query), { method, headers, body, credentials: 'include', signal });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') throw e;
+      throw new ApiError(0, 'Unable to reach the CodeGuard API. Check your connection or try again shortly.');
     }
-    throw parseErrorBody(res.status, parsed);
+
+    if (res.status === 401 && !opts.skipAuthRedirect) redirectToLogin();
+
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = contentType.includes('json') ? await res.json() : await res.text();
+      } catch {
+        signal.throwIfAborted();
+        parsed = null;
+      }
+      throw parseErrorBody(res.status, parsed);
+    }
+    if (res.status === 204 || (res.status === 202 && !contentType.includes('json'))) return undefined as T;
+    if (contentType.includes('json')) {
+      const text = await res.text();
+      return (text ? JSON.parse(text) : undefined) as T;
+    }
+    return (await res.text()) as unknown as T;
+  } catch (e) {
+    if (signal.aborted) {
+      if (signal.reason?.name === 'TimeoutError') throw new ApiError(0, 'Request timed out. Try again.');
+      throw signal.reason;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
   }
-  if (res.status === 204 || (res.status === 202 && !contentType.includes('json'))) return undefined as T;
-  if (contentType.includes('json')) {
-    const text = await res.text();
-    return (text ? JSON.parse(text) : undefined) as T;
-  }
-  return (await res.text()) as unknown as T;
 }
 
 const get = <T>(path: string, query?: Record<string, QueryValue>, extra?: Omit<RequestOptions, 'query'>) =>
@@ -208,7 +224,7 @@ export interface FindingsQuery {
 /** Typed helpers per endpoint (docs/API_DOCUMENTATION.md). */
 export const api = {
   meta: () => get<MetaView>('/meta', undefined, { skipAuthRedirect: true }),
-  plans: async () => asArray(await get<PlanView[] | { plans: PlanView[] }>('/plans', undefined, { skipAuthRedirect: true })),
+  plans: async (signal?: AbortSignal) => asArray(await get<PlanView[] | { plans: PlanView[] }>('/plans', undefined, { skipAuthRedirect: true, signal })),
 
   auth: {
     me: (opts?: { skipAuthRedirect?: boolean }) => get<MeResponse>('/auth/me', undefined, opts),
@@ -259,7 +275,7 @@ export const api = {
   },
 
   sources: {
-    inspect: (url: string, organizationId?: string) => post<SourceInspection>('/sources/inspect', { url, organizationId }),
+    inspect: (url: string, organizationId?: string) => post<SourceInspection>('/sources/inspect', { url, organizationId }, { timeoutMs: 30_000 }),
   },
 
   scans: {
@@ -285,7 +301,7 @@ export const api = {
     get: (id: string) => get<FindingDetailView>(`/findings/${enc(id)}`),
     updateStatus: (id: string, body: { status: FindingStatus; note?: string; applyToFuture: boolean }) =>
       patch<FindingView>(`/findings/${enc(id)}/status`, body),
-    explain: (id: string) => post<{ aiExplanation: string }>(`/findings/${enc(id)}/explain`),
+    explain: (id: string) => post<{ aiExplanation: string }>(`/findings/${enc(id)}/explain`, undefined, { timeoutMs: 200_000 }),
   },
 
   integrations: {

@@ -18,7 +18,58 @@ describe('api client', () => {
       value: { ...window.location, pathname: '/projects/abc', search: '?tab=history', origin: 'http://localhost', assign },
     });
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('times out stalled requests after 10 seconds', async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    }));
+    const result = expect(api.plans()).rejects.toMatchObject({ status: 0, message: 'Request timed out. Try again.' });
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await result;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([200, 500])('keeps the timeout active while reading a %s response body', async (status) => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation((_url, { signal }) => {
+      const stalledBody = () => new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      });
+      return Promise.resolve({ ok: status === 200, status, headers: new Headers({ 'content-type': 'application/json' }), text: stalledBody, json: stalledBody });
+    });
+    const result = expect(apiRequest('/plans', { timeoutMs: 25 })).rejects.toMatchObject({ message: 'Request timed out. Try again.' });
+    await vi.advanceTimersByTimeAsync(25);
+    await result;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([false, true])('preserves caller cancellation (already aborted: %s)', async (alreadyAborted) => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    fetchMock.mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
+      if (signal.aborted) reject(signal.reason);
+      else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    }));
+    if (alreadyAborted) controller.abort();
+    const result = expect(apiRequest('/plans', { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+    if (!alreadyAborted) controller.abort();
+    await result;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('clears the timeout after a successful response', async () => {
+    vi.useFakeTimers();
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
+    await expect(api.plans()).resolves.toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
 
   it('does not send the CSRF header on GET and includes credentials', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));

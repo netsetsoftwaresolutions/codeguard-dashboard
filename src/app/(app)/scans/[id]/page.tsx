@@ -1,15 +1,17 @@
 'use client';
 
 import type { ScanView } from '../../../../contracts';
-import { EmptyState, formatBytes, ScanStatusBadge } from '../../../../components/primitives';
-import { Ban, Download, GitCompare, RefreshCw, Share2, Trash } from 'lucide-react';
+import { cx, EmptyState, formatBytes, ScanStatusBadge } from '../../../../components/primitives';
+import { Ban, Download, GitCompare, LoaderCircle, Lock, RefreshCw, Share2, Trash } from 'lucide-react';
+import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth';
 import { CommitList } from '@/components/commit-list';
 import { FindingDrawer, FindingsList } from '@/components/findings-list';
 import { isTerminal } from '@/components/scan-bits';
-import { CoverageSection, PullRequestHeader, ScanProgressCard, ScanSummarySection } from '@/components/scan-report';
+import { PullRequestHeader, ScanDetailsSection, ScanProgressCard, ScanSummarySection, type ReportFilter } from '@/components/scan-report';
+import { EMPTY_FILTERS, type FindingFilters } from '@/lib/findings-filter';
 import {
   Button,
   buttonClass,
@@ -248,7 +250,10 @@ function ScanPageInner() {
   const { id } = useParams<{ id: string }>();
   const params = useSearchParams();
   const router = useRouter();
-  const { can } = useAuth();
+  const { can, currentOrg } = useAuth();
+  const { data: plans } = useApi('plans', () => api.plans());
+  const currentPlan = plans?.find((p) => p.key === currentOrg?.planKey);
+  const canExportReports = currentPlan ? currentPlan.features.includes('report_exports') : currentOrg?.planKey !== 'free';
   const { data: scan, error, loading, reload, setData } = useApi(`scan:${id}`, () => api.scans.get(id));
   const [tab, setTab] = useState<Tab>((['findings', 'files', 'commits', 'compare'] as Tab[]).includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'findings');
   const [openFinding, setOpenFinding] = useState<string | null>(params.get('finding'));
@@ -257,6 +262,24 @@ function ScanPageInner() {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<unknown>(null);
   const [prCounts, setPrCounts] = useState<{ newCount: number; total: number } | null>(null);
+  const [findingFilters, setFindingFilters] = useState<FindingFilters>(EMPTY_FILTERS);
+
+  const handleFilter = useCallback((f: ReportFilter) => {
+    setTab('findings');
+    setFindingFilters((prev) => {
+      const isSameSev = f.severity !== undefined && prev.severity === f.severity;
+      const isSameCat = f.category !== undefined && prev.category === f.category && !f.search;
+      return {
+        ...prev,
+        severity: isSameSev ? '' : (f.severity !== undefined ? f.severity : prev.severity),
+        category: isSameCat ? '' : (f.category !== undefined ? f.category : prev.category),
+        search: f.search !== undefined ? f.search : prev.search,
+      };
+    });
+    requestAnimationFrame(() => {
+      document.getElementById('findings-section')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }, []);
 
   const running = !!scan && !isTerminal(scan.status);
 
@@ -308,6 +331,26 @@ function ScanPageInner() {
     }
   };
 
+  const exportReport = async (format: 'json' | 'csv' | 'pdf') => {
+    await doAction(`export-${format}`, async () => {
+      const url = api.scans.reportUrl(scan.id, format);
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || `Failed to download ${format.toUpperCase()} report (${res.status})`);
+      }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `codeguard-report-${scan.id}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    });
+  };
+
   const actions = (
     <>
       {running && can('scan') && (
@@ -322,20 +365,46 @@ function ScanPageInner() {
       )}
       {finished && (
         <>
-          <div className="flex overflow-hidden rounded-lg" role="group" aria-label="Export report">
-            {(['json', 'csv', 'pdf'] as const).map((f) => (
-              <a key={f} href={api.scans.reportUrl(scan.id, f)} download className={buttonClass('outline', 'md', 'rounded-none first:rounded-l-lg last:rounded-r-lg [&:not(:first-child)]:-ml-px')}>
-                {f === 'json' && <Download size={16} aria-hidden="true" />}
-                {f.toUpperCase()}
-              </a>
-            ))}
+          <div
+            className="inline-flex h-9 items-stretch divide-x divide-slate-300 rounded-lg border border-slate-300 dark:divide-ink-500 dark:border-ink-500"
+            role="group"
+            aria-label="Export report"
+          >
+            <span className="flex items-center px-2.5 text-slate-400" title="Export report">
+              <Download size={16} aria-hidden="true" />
+            </span>
+            {(['json', 'csv', 'pdf'] as const).map((f) => {
+              const isGated = (f === 'pdf' || f === 'csv') && !canExportReports;
+              return (
+                <div key={f} className="relative inline-flex last:[&>button]:rounded-r-[7px]">
+                  <button
+                    type="button"
+                    disabled={actionBusy !== null || isGated}
+                    onClick={() => exportReport(f)}
+                    title={isGated ? 'Requires Pro or Team plan (report exports)' : `Export as ${f.toUpperCase()}`}
+                    className={cx(buttonClass('ghost', 'sm', 'h-full rounded-none font-semibold tracking-wide'), isGated && '!text-slate-400 dark:!text-slate-500')}
+                  >
+                    {actionBusy === `export-${f}` && <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />}
+                    {f.toUpperCase()}
+                  </button>
+                  {isGated && (
+                    <span
+                      title="Requires Pro or Team plan"
+                      className="pointer-events-none absolute -top-2 -right-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs"
+                      aria-label="Feature locked"
+                    >
+                      <Lock size={10} strokeWidth={2.75} aria-hidden="true" />
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <Button variant="outline" icon={<Share2 size={16} aria-hidden="true" />} onClick={() => setShareOpen(true)}>
             Share
           </Button>
           {can('scan') && (
             <Button
-              variant="outline"
               loading={actionBusy === 'rescan'}
               icon={<RefreshCw size={16} aria-hidden="true" />}
               onClick={() => doAction('rescan', async () => router.push(scanDestination(await api.scans.rescan(scan.id))))}
@@ -344,9 +413,17 @@ function ScanPageInner() {
             </Button>
           )}
           {can('deleteScans') && (
-            <Button variant="ghost" icon={<Trash size={16} aria-hidden="true" />} onClick={() => setDeleteOpen(true)}>
-              Delete
-            </Button>
+            <>
+              <span className="mx-1 hidden h-6 w-px bg-slate-200 dark:bg-ink-600 sm:block" aria-hidden="true" />
+              <Button
+                variant="ghost"
+                className="!text-red-600 hover:!bg-red-500/10 hover:!text-red-700 dark:!text-red-400 dark:hover:!text-red-300"
+                icon={<Trash size={16} aria-hidden="true" />}
+                onClick={() => setDeleteOpen(true)}
+              >
+                Delete
+              </Button>
+            </>
           )}
         </>
       )}
@@ -366,9 +443,9 @@ function ScanPageInner() {
             <ScanStatusBadge status={scan.status} />
             {PROVIDER_LABELS[scan.provider]} · {SCAN_TYPE_LABELS[scan.type]} · {formatDateTime(scan.createdAt)}
             {scan.scanGroupId && (
-              <a href={`/scans/groups/${scan.scanGroupId}`} className="text-brand-600 hover:underline dark:text-brand-400">
+              <Link href={`/scans/groups/${scan.scanGroupId}`} className="text-brand-600 hover:underline dark:text-brand-400">
                 Branch comparison
-              </a>
+              </Link>
             )}
           </span>
         }
@@ -381,10 +458,15 @@ function ScanPageInner() {
       ) : (
         <div className="space-y-6">
           {isPr && <PullRequestHeader scan={scan} newCount={prCounts?.newCount ?? null} totalCount={prCounts?.total ?? null} />}
-          <ScanSummarySection scan={scan} summary={summary} />
-          {summary && <CoverageSection summary={summary} />}
+          <ScanSummarySection
+            scan={scan}
+            summary={summary}
+            activeSeverity={findingFilters.severity}
+            activeCategory={findingFilters.category}
+            onFilter={handleFilter}
+          />
           {scan.status !== 'CANCELLED' && (
-            <div>
+            <div id="findings-section" className="space-y-4">
               <Tabs
                 label="Report sections"
                 active={tab}
@@ -399,7 +481,13 @@ function ScanPageInner() {
               <div role="tabpanel" aria-label={tab}>
                 {tab === 'findings' && (
                   <Card>
-                    <FindingsList sourceKey={`scan:${scan.id}`} fetchPage={(q) => api.scans.findings(scan.id, q)} showOnlyNew={isPr} />
+                    <FindingsList
+                      sourceKey={`scan:${scan.id}`}
+                      fetchPage={(q) => api.scans.findings(scan.id, q)}
+                      showOnlyNew={isPr}
+                      filters={findingFilters}
+                      onFiltersChange={setFindingFilters}
+                    />
                   </Card>
                 )}
                 {tab === 'files' && <FilesTab scanId={scan.id} />}
@@ -415,6 +503,7 @@ function ScanPageInner() {
               </div>
             </div>
           )}
+          <ScanDetailsSection scan={scan} summary={summary} />
         </div>
       )}
 

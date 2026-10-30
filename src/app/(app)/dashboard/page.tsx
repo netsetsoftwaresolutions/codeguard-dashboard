@@ -1,13 +1,13 @@
 'use client';
 
 import { SEVERITIES } from '../../../contracts';
-import { EmptyState, formatRelativeTime, ProgressBar, RiskBadge, SEVERITY_STYLES } from '../../../components/primitives';
+import { EmptyState, formatRelativeTime, ProgressBar, RiskBadge, SeverityBar, SEVERITY_STYLES } from '../../../components/primitives';
 import { Activity, FolderKanban, FolderPlus, GitBranch, Link2, ScanSearch, ShieldAlert, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth';
 import { BarList, RiskTrendChart } from '@/components/charts';
 import { isTerminal, ScanSourceCell, ScanTable } from '@/components/scan-bits';
-import { Card, CardBody, CardHeader, ErrorState, LinkButton, LoadingBlock, PageHeader, Skeleton, StatCard, Table, tbodyClass, Td, Th } from '@/components/ui';
+import { Card, CardBody, CardHeader, ErrorState, LinkButton, LoadingBlock, PageHeader, Skeleton, StatCard, statGroupClass, Table, tbodyClass, Td, Th } from '@/components/ui';
 import { api } from '@/lib/api';
 import { STAGE_LABELS, formatNumber, sevTotal } from '@/lib/format';
 import { useApi, useInterval } from '@/lib/hooks';
@@ -19,6 +19,10 @@ export default function DashboardPage() {
   useInterval(reload, 10_000, !!data && data.scansInProgress > 0);
 
   const canScan = can('scan');
+  const running = data?.recentScans.find((s) => !isTerminal(s.status));
+  const topProject = data?.topRiskProjects[0];
+  const trend = data ? [...data.riskTrend].sort((a, b) => a.date.localeCompare(b.date)) : [];
+  const maxDailyScans = Math.max(1, ...trend.map((p) => p.scans));
   const actions = canScan ? (
     <>
       <LinkButton href="/scans/new/upload" variant="outline" icon={<Upload size={16} aria-hidden="true" />}>
@@ -46,15 +50,52 @@ export default function DashboardPage() {
         </div>
       ) : data ? (
         <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Projects" value={formatNumber(data.projectCount)} icon={<FolderKanban size={18} aria-hidden="true" />} href="/projects" />
-            <StatCard label="Scans (30 days)" value={formatNumber(data.scansLast30Days)} icon={<ScanSearch size={18} aria-hidden="true" />} />
-            <StatCard label="In progress" value={formatNumber(data.scansInProgress)} icon={<Activity size={18} aria-hidden="true" />} />
+          <div className={`${statGroupClass} sm:grid-cols-2 lg:grid-cols-4`}>
+            <StatCard label="Projects" value={formatNumber(data.projectCount)} icon={<FolderKanban size={16} aria-hidden="true" />} href="/projects"
+              footer={
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                  {topProject ? (
+                    <>
+                      Highest risk {topProject.riskScore}/100 · <span className="font-medium text-slate-700 dark:text-slate-200">{topProject.name}</span>
+                    </>
+                  ) : (
+                    'No scored projects yet'
+                  )}
+                </p>
+              }
+            />
+            <StatCard label="Scans (30 days)" value={formatNumber(data.scansLast30Days)} icon={<ScanSearch size={16} aria-hidden="true" />}
+              footer={
+                <div className="flex h-full w-full items-end gap-px" role="img" aria-label="Scans per day, last 30 days">
+                  {trend.map((p) => (
+                    <span
+                      key={p.date}
+                      title={`${p.date}: ${p.scans} scan${p.scans === 1 ? '' : 's'}`}
+                      className={p.scans ? 'flex-1 rounded-sm bg-brand-500/70' : 'flex-1 rounded-sm bg-slate-200 dark:bg-ink-600'}
+                      style={{ height: p.scans ? `${Math.max(30, (p.scans / maxDailyScans) * 100)}%` : '2px' }}
+                    />
+                  ))}
+                </div>
+              }
+            />
+            <StatCard label="In progress" value={formatNumber(data.scansInProgress)} icon={<Activity size={16} aria-hidden="true" />}
+              hint={running ? `${running.stage ? STAGE_LABELS[running.stage] : 'Queued'} · ${running.progress}%` : undefined}
+              footer={
+                running ? (
+                  <ProgressBar value={running.progress} />
+                ) : (
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    {data.recentScans[0] ? `All idle · last scan ${formatRelativeTime(data.recentScans[0].createdAt)}` : 'No scans yet'}
+                  </p>
+                )
+              }
+            />
             <StatCard
               label="Open findings"
               value={formatNumber(sevTotal(data.openFindings))}
               hint={`${formatNumber((data.openFindings.CRITICAL ?? 0) + (data.openFindings.HIGH ?? 0))} critical or high`}
-              icon={<ShieldAlert size={18} aria-hidden="true" />}
+              icon={<ShieldAlert size={16} aria-hidden="true" />}
+              footer={<SeverityBar counts={data.openFindings} />}
             />
           </div>
 
@@ -135,7 +176,7 @@ export default function DashboardPage() {
                       {data.topRiskProjects.map((p) => (
                         <tr key={p.projectId}>
                           <Td>
-                            <Link href={`/projects/${p.projectId}`} className="font-medium text-slate-900 hover:underline dark:text-white">
+                            <Link href={`/projects/${p.projectId}`} className="font-medium text-slate-900 [overflow-wrap:anywhere] hover:underline dark:text-white">
                               {p.name}
                             </Link>
                             <p className="text-xs text-slate-500 dark:text-slate-400">Last scan {formatRelativeTime(p.lastScanAt)}</p>

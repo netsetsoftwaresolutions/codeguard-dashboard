@@ -6,7 +6,7 @@ import { formatRelativeTime, RiskBadge, ScanStatusBadge, SeverityCountsRow } fro
 import { Cloud, FolderGit2, Globe, HardDrive, Upload, GitBranch } from 'lucide-react';
 import Link from 'next/link';
 import { PROVIDER_LABELS, SCAN_TYPE_LABELS, shortSha } from '@/lib/format';
-import { Table, tbodyClass, Td, Th } from './ui';
+import { focusRing, Table, tbodyClass, Td, Th } from './ui';
 
 export function isTerminal(status: ScanView['status']): boolean {
   return TERMINAL_SCAN_STATUSES.includes(status);
@@ -97,7 +97,7 @@ export function ScanTable({
               <Td>
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-ink-500 dark:bg-ink-900"
+                  className={`h-4 w-4 cursor-pointer rounded accent-brand-600 disabled:cursor-not-allowed dark:[color-scheme:dark] ${focusRing}`}
                   checked={selected?.includes(s.id) ?? false}
                   onChange={() => onToggle?.(s.id)}
                   disabled={!isTerminal(s.status) || (!selected?.includes(s.id) && (selected?.length ?? 0) >= 2)}

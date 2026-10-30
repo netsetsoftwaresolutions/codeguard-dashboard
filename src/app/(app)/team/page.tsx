@@ -35,6 +35,11 @@ import { useApi } from '@/lib/hooks';
 import { assignableRoles, ROLE_LABELS } from '@/lib/roles';
 import { validate } from '@/lib/validation';
 
+const actionLabel = (a: string) => {
+  const t = a.replace(/[._]/g, ' ');
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
+
 function Members({ orgId }: { orgId: string }) {
   const { role, can, user } = useAuth();
   const canManage = can('manageMembers');
@@ -45,7 +50,7 @@ function Members({ orgId }: { orgId: string }) {
   const roles = assignableRoles(role);
   return (
     <Card>
-      <CardHeader title="Members" />
+      <CardHeader title="Members" description={data ? `${data.length} ${data.length === 1 ? 'person' : 'people'} with access` : undefined} />
       <FormError error={actionError} />
       {error ? (
         <CardBody>
@@ -56,69 +61,63 @@ function Members({ orgId }: { orgId: string }) {
           <LoadingBlock rows={3} />
         </CardBody>
       ) : (
-        <Table caption="Organization members">
-          <thead>
-            <tr>
-              <Th>Member</Th>
-              <Th>Role</Th>
-              <Th>Joined</Th>
-              <Th>
-                <span className="sr-only">Actions</span>
-              </Th>
-            </tr>
-          </thead>
-          <tbody className={tbodyClass}>
-            {(data ?? []).map((m) => {
-              const self = m.userId === user?.id;
-              const editable = canManage && !self && (role === 'OWNER' || m.role !== 'OWNER');
-              return (
-                <tr key={m.id}>
-                  <Td>
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {m.name ?? m.email} {self && <Pill>you</Pill>}
+        <ul aria-label="Organization members" className={tbodyClass}>
+          {(data ?? []).map((m) => {
+            const self = m.userId === user?.id;
+            const editable = canManage && !self && (role === 'OWNER' || m.role !== 'OWNER');
+            return (
+              <li key={m.id} className="grid items-center gap-x-4 gap-y-2 px-5 py-3 sm:grid-cols-[minmax(0,1fr)_11rem_7.5rem_6.5rem]">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600/10 text-xs font-semibold text-brand-700 dark:text-brand-400" aria-hidden="true">
+                    {(m.name ?? m.email).charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
+                      <span className="truncate">{m.name ?? m.email}</span>
+                      {self && <Pill>you</Pill>}
                     </p>
-                    {m.name && <p className="text-xs text-slate-500">{m.email}</p>}
-                  </Td>
-                  <Td>
-                    {editable ? (
-                      <Select
-                        aria-label={`Role for ${m.email}`}
-                        value={m.role}
-                        className="w-44"
-                        onChange={async (e) => {
-                          const r = e.target.value as OrgRole;
-                          setActionError(null);
-                          try {
-                            await api.organizations.updateMember(orgId, m.id, r);
-                            setData((prev) => prev?.map((x) => (x.id === m.id ? { ...x, role: r } : x)));
-                          } catch (err) {
-                            setActionError(err);
-                          }
-                        }}
-                      >
-                        {(roles.includes(m.role) ? roles : [m.role, ...roles]).map((r) => (
-                          <option key={r} value={r}>
-                            {ROLE_LABELS[r]}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      ROLE_LABELS[m.role]
-                    )}
-                  </Td>
-                  <Td className="text-xs">{formatDate(m.createdAt)}</Td>
-                  <Td align="right">
-                    {editable && (
-                      <Button size="sm" variant="ghost" icon={<Trash size={14} aria-hidden="true" />} onClick={() => setRemoving(m)}>
-                        Remove
-                      </Button>
-                    )}
-                  </Td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
+                    {m.name && <p className="truncate text-xs text-slate-500">{m.email}</p>}
+                  </div>
+                </div>
+                <div>
+                  {editable ? (
+                    <Select
+                      aria-label={`Role for ${m.email}`}
+                      value={m.role}
+                      className="w-full"
+                      onChange={async (e) => {
+                        const r = e.target.value as OrgRole;
+                        setActionError(null);
+                        try {
+                          await api.organizations.updateMember(orgId, m.id, r);
+                          setData((prev) => prev?.map((x) => (x.id === m.id ? { ...x, role: r } : x)));
+                        } catch (err) {
+                          setActionError(err);
+                        }
+                      }}
+                    >
+                      {(roles.includes(m.role) ? roles : [m.role, ...roles]).map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABELS[r]}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Pill className={m.role === 'OWNER' ? 'bg-brand-600/10 text-brand-700 dark:text-brand-400' : undefined}>{ROLE_LABELS[m.role]}</Pill>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Joined {formatDate(m.createdAt)}</p>
+                <div className="sm:text-right">
+                  {editable && (
+                    <Button size="sm" variant="ghost" icon={<Trash size={14} aria-hidden="true" />} onClick={() => setRemoving(m)}>
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
       <ConfirmDialog
         open={!!removing}
@@ -157,7 +156,7 @@ function Invitations({ orgId }: { orgId: string }) {
   if (!can('manageMembers')) return null;
   return (
     <Card>
-      <CardHeader title="Invitations" icon={<UserPlus size={16} aria-hidden="true" />} />
+      <CardHeader title="Invite a teammate" description="Send an invitation by email and choose their role." icon={<UserPlus size={16} aria-hidden="true" />} />
       <CardBody className="space-y-4">
         <form
           className="grid gap-3 sm:grid-cols-[1fr_200px_auto] sm:items-end"
@@ -229,7 +228,7 @@ function Invitations({ orgId }: { orgId: string }) {
               ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">No pending invitations.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">No pending invitations.</p>
         )}
       </CardBody>
       <Modal open={!!inviteUrl} onClose={() => setInviteUrl(null)} title="Invitation created" footer={<Button onClick={() => setInviteUrl(null)}>Done</Button>}>
@@ -274,16 +273,20 @@ function AuditLog({ orgId }: { orgId: string }) {
             <tbody className={tbodyClass}>
               {data.items.map((a) => (
                 <tr key={a.id}>
-                  <Td className="whitespace-nowrap text-xs" >
+                  <Td className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
                     <time dateTime={a.createdAt} title={formatDateTime(a.createdAt)}>
                       {formatRelativeTime(a.createdAt)}
                     </time>
                   </Td>
                   <Td className="text-xs">{a.actorEmail ?? 'system'}</Td>
-                  <Td className="font-mono text-xs">{a.action}</Td>
+                  <Td className="text-xs font-medium" ><span title={a.action}>{actionLabel(a.action)}</span></Td>
                   <Td className="text-xs">
-                    {a.resourceType}
-                    {a.resourceId && <span className="ml-1 font-mono text-slate-500">{a.resourceId}</span>}
+                    <span className="capitalize">{a.resourceType}</span>
+                    {a.resourceId && (
+                      <span className="ml-1.5 font-mono text-slate-500" title={a.resourceId}>
+                        …{a.resourceId.slice(-6)}
+                      </span>
+                    )}
                   </Td>
                 </tr>
               ))}

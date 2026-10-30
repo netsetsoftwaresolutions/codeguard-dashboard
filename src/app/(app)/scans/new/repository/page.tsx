@@ -118,7 +118,7 @@ function RepositoryForm() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
       <Card>
         <CardBody className="space-y-5">
           <Field htmlFor="repo-url" label="Repository or pull request URL" hint="GitHub, GitLab or Bitbucket. Paste a pull/merge request URL to analyse only what the change introduces.">

@@ -19,6 +19,14 @@ export function useApi<T>(key: string | null, fetcher: () => Promise<T>): AsyncS
   const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState<boolean>(key !== null);
   const [nonce, setNonce] = useState(0);
+  const [prevKey, setPrevKey] = useState(key);
+  // Reset during render (not in an effect) so the previous key's data is never painted.
+  if (prevKey !== key) {
+    setPrevKey(key);
+    setDataState(undefined);
+    setError(null);
+    setLoading(key !== null);
+  }
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 

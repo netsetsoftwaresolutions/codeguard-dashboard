@@ -97,7 +97,17 @@ export function uploadScan(
   signal?: AbortSignal,
 ): Promise<ScanCreatedResponse> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new ApiError(0, 'Upload cancelled.'));
+      return;
+    }
     const xhr = new XMLHttpRequest();
+    const onAbort = () => xhr.abort();
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+    const cleanup = () => {
+      if (signal) signal.removeEventListener('abort', onAbort);
+    };
+
     xhr.open('POST', '/api/scans/upload');
     xhr.withCredentials = true;
     xhr.setRequestHeader(CSRF_HEADER, '1');
@@ -107,6 +117,7 @@ export function uploadScan(
       onProgress({ loaded: e.loaded, total: e.total, percent: Math.round((e.loaded / e.total) * 100) });
     };
     xhr.onload = () => {
+      cleanup();
       let parsed: unknown = null;
       try {
         parsed = xhr.responseText ? JSON.parse(xhr.responseText) : null;
@@ -120,9 +131,14 @@ export function uploadScan(
       if (xhr.status === 401) redirectToLogin();
       reject(parseErrorBody(xhr.status, parsed));
     };
-    xhr.onerror = () => reject(new ApiError(0, 'The upload failed due to a network error.'));
-    xhr.onabort = () => reject(new ApiError(0, 'Upload cancelled.'));
-    if (signal) signal.addEventListener('abort', () => xhr.abort(), { once: true });
+    xhr.onerror = () => {
+      cleanup();
+      reject(new ApiError(0, 'The upload failed due to a network error.'));
+    };
+    xhr.onabort = () => {
+      cleanup();
+      reject(new ApiError(0, 'Upload cancelled.'));
+    };
     xhr.send(formData);
   });
 }

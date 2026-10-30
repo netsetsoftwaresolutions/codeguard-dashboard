@@ -42,21 +42,15 @@ export function ProjectTargetPicker({ value, onChange, suggestedName }: { value:
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">Project</legend>
-      <div className="flex flex-wrap gap-4 text-sm">
-        <label className="inline-flex items-center gap-2">
-          <input type="radio" name={`${id}-mode`} checked={value.mode === 'new'} onChange={() => onChange({ ...value, mode: 'new' })} className="text-brand-600 focus:ring-brand-500" />
-          New project
+      <div role="radiogroup" aria-label="Project" className="flex rounded-lg bg-slate-100 p-0.5 dark:bg-ink-900">
+        <label className="relative flex-1">
+          <input type="radio" name={`${id}-mode`} checked={value.mode === 'new'} onChange={() => onChange({ ...value, mode: 'new' })} className="peer sr-only" />
+          <span className="block cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-800 peer-checked:bg-white peer-checked:text-slate-900 peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:peer-checked:bg-ink-600 dark:peer-checked:text-white">New project</span>
         </label>
-        <label className="inline-flex items-center gap-2">
-          <input
-            type="radio"
-            name={`${id}-mode`}
-            checked={value.mode === 'existing'}
-            disabled={!loading && !projects?.length}
-            onChange={() => onChange({ ...value, mode: 'existing' })}
-            className="text-brand-600 focus:ring-brand-500"
-          />
-          Existing project
+        <label className="relative flex-1">
+          <input type="radio" name={`${id}-mode`} checked={value.mode === 'existing'}
+            disabled={!loading && !projects?.length} onChange={() => onChange({ ...value, mode: 'existing' })} className="peer sr-only" />
+          <span className="block cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-800 peer-checked:bg-white peer-checked:text-slate-900 peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200 dark:peer-checked:bg-ink-600 dark:peer-checked:text-white">Existing project</span>
         </label>
       </div>
       {value.mode === 'existing' ? (

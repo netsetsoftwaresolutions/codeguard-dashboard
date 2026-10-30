@@ -4,7 +4,7 @@ import type { FindingView, Paginated } from '../contracts';
 import { FINDING_CATEGORIES, FINDING_CLASSIFICATIONS, FINDING_STATUSES, SEVERITIES } from '../contracts';
 import { ClassificationBadge, EmptyState, FindingStatusBadge, findingStatusLabel, SEVERITY_STYLES, SeverityBadge } from './primitives';
 import { ChevronRight, Funnel, Search, ShieldCheck } from 'lucide-react';
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { api, type FindingsQuery } from '@/lib/api';
 import { activeFilterCount, EMPTY_FILTERS, toFindingsQuery, type FindingFilters } from '@/lib/findings-filter';
 import { CATEGORY_LABELS } from '@/lib/format';
@@ -164,20 +164,42 @@ export function FindingsList({
   fetchPage,
   showOnlyNew,
   initialFilters,
+  filters: controlledFilters,
+  onFiltersChange,
   emptyTitle = 'No findings match',
-  pageSize = 50,
+  pageSize = 20,
 }: {
   /** Changes when the underlying collection changes (scan id, project id). */
   sourceKey: string;
   fetchPage: (q: FindingsQuery) => Promise<Paginated<FindingView>>;
   showOnlyNew?: boolean;
   initialFilters?: Partial<FindingFilters>;
+  filters?: FindingFilters;
+  onFiltersChange?: (f: FindingFilters) => void;
   emptyTitle?: string;
   pageSize?: number;
 }) {
-  const [filters, setFilters] = useState<FindingFilters>({ ...EMPTY_FILTERS, ...initialFilters });
+  const [internalFilters, setInternalFilters] = useState<FindingFilters>({ ...EMPTY_FILTERS, ...initialFilters });
+  const filters = controlledFilters ?? internalFilters;
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const filterKey = JSON.stringify(filters);
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
+
+  const setFilters = useCallback(
+    (next: FindingFilters) => {
+      setPage(1);
+      onFiltersChange?.(next);
+      setInternalFilters(next);
+    },
+    [onFiltersChange],
+  );
+
   const query = useMemo(() => toFindingsQuery(filters, page, pageSize), [filters, page, pageSize]);
   const key = `${sourceKey}:${JSON.stringify(query)}`;
   const { data, error, loading, reload, setData } = useApi(key, () => fetchPage(query));
@@ -190,7 +212,6 @@ export function FindingsList({
         showOnlyNew={showOnlyNew}
         onChange={(f) => {
           setFilters(f);
-          setPage(1);
         }}
       />
       {error ? (
