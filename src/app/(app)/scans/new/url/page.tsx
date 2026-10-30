@@ -35,7 +35,7 @@ function UrlForm() {
   }, [trimmed]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
       <Card>
         <CardBody className="space-y-5">
           <Field htmlFor="scan-url" label="Source URL" hint="Repository, file, pull request, Dropbox / Google Drive share link, raw file or archive URL.">

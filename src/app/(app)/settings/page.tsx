@@ -1,11 +1,12 @@
 'use client';
 
 import { CreateOrganizationSchema } from '../../../contracts';
-import { LogOut, Trash } from 'lucide-react';
+import { LogOut, Moon, Sun, Trash } from 'lucide-react';
 import { useState } from 'react';
-import { useAuth } from '@/components/auth';
+import { ORG_STORAGE_KEY, useAuth } from '@/components/auth';
 import { useTheme } from '@/components/theme';
-import { Button, Card, CardBody, CardHeader, ConfirmDialog, DescriptionList, Field, FormError, Input, Notice, PageHeader, Pill } from '@/components/ui';
+import { Button, Card, CardBody, CardHeader, ConfirmDialog, DescriptionList, Field, focusRing, FormError, Input, Notice, PageHeader, Pill } from '@/components/ui';
+import { cx } from '@/components/primitives';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { ROLE_LABELS } from '@/lib/roles';
@@ -35,26 +36,48 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <Card>
           <CardHeader title="Profile" />
-          <CardBody className="space-y-4">
+          <CardBody className="space-y-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600/10 text-base font-semibold text-brand-700 dark:text-brand-400" aria-hidden="true">
+                {(user.name || user.email).charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-medium">{user.name ?? user.email}</p>
+                <p className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                  <span className="truncate">{user.email}</span>
+                  {user.emailVerified ? <Pill className="bg-green-500/10 text-green-700 dark:text-green-300">verified</Pill> : <Pill>unverified</Pill>}
+                </p>
+              </div>
+            </div>
             <DescriptionList
               items={[
-                { label: 'Name', value: user.name ?? '—' },
-                { label: 'Email', value: <span className="flex items-center gap-2">{user.email}{user.emailVerified ? <Pill className="bg-green-500/10 text-green-700 dark:text-green-300">verified</Pill> : <Pill>unverified</Pill>}</span> },
                 { label: 'Member since', value: formatDate(user.createdAt) },
                 { label: 'Organizations', value: organizations.map((o) => `${o.name} (${ROLE_LABELS[o.role]})`).join(', ') },
               ]}
             />
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 text-sm">
-                <span>Theme</span>
-                <Button size="sm" variant={theme === 'dark' ? 'primary' : 'outline'} onClick={() => setTheme('dark')} aria-pressed={theme === 'dark'}>
-                  Dark
-                </Button>
-                <Button size="sm" variant={theme === 'light' ? 'primary' : 'outline'} onClick={() => setTheme('light')} aria-pressed={theme === 'light'}>
-                  Light
-                </Button>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-ink-600">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-slate-600 dark:text-slate-300">Theme</span>
+                <div role="group" aria-label="Theme" className="inline-flex rounded-lg bg-slate-100 p-0.5 dark:bg-ink-900">
+                  {(['dark', 'light'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      aria-pressed={theme === t}
+                      onClick={() => setTheme(t)}
+                      className={cx(
+                        'inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium transition-colors',
+                        focusRing,
+                        theme === t ? 'bg-white text-slate-900 shadow-sm dark:bg-ink-600 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200',
+                      )}
+                    >
+                      {t === 'dark' ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}
+                      {t === 'dark' ? 'Dark' : 'Light'}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <Button variant="outline" icon={<LogOut size={16} aria-hidden="true" />} onClick={() => void logout()} className="ml-auto">
+              <Button variant="outline" icon={<LogOut size={16} aria-hidden="true" />} onClick={() => void logout()}>
                 Sign out
               </Button>
             </div>
@@ -95,7 +118,7 @@ export default function SettingsPage() {
                 }
               }}
             >
-              <fieldset disabled={!isOwner} className="grid gap-4 disabled:opacity-70 sm:grid-cols-2">
+              <fieldset disabled={!isOwner} className="grid items-start gap-4 disabled:opacity-70 sm:grid-cols-2">
                 <Field htmlFor="org-name" label="Organization name">
                   <Input id="org-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
                 </Field>
@@ -106,16 +129,18 @@ export default function SettingsPage() {
               <FormError error={error} />
               {saved && <Notice tone="success">Organization updated.</Notice>}
               {isOwner && (
-                <Button type="submit" loading={busy}>
-                  Save organization
-                </Button>
+                <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-ink-600">
+                  <Button type="submit" loading={busy}>
+                    Save organization
+                  </Button>
+                </div>
               )}
             </form>
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader title="Create another organization" />
+          <CardHeader title="Create another organization" description="Start a separate workspace with its own projects and members." />
           <CardBody>
             <form
               className="flex flex-wrap items-end gap-3"
@@ -138,8 +163,8 @@ export default function SettingsPage() {
               }}
             >
               <div className="min-w-[240px] flex-1">
-                <Field htmlFor="new-org" label="Name">
-                  <Input id="new-org" value={newOrg} onChange={(e) => setNewOrg(e.target.value)} maxLength={100} />
+                <Field htmlFor="new-org" label="Organization name">
+                  <Input id="new-org" placeholder="e.g. Acme Security" value={newOrg} onChange={(e) => setNewOrg(e.target.value)} maxLength={100} />
                 </Field>
               </div>
               <Button type="submit" variant="outline" loading={newOrgBusy}>
@@ -153,7 +178,7 @@ export default function SettingsPage() {
         </Card>
 
         <Card className="border-red-500/40 dark:border-red-500/40">
-          <CardHeader title="Danger zone" />
+          <CardHeader title={<span className="text-red-600 dark:text-red-400">Danger zone</span>} />
           <CardBody className="space-y-5 text-sm">
             <div>
               <h3 className="font-semibold">Delete my uploaded code and reports</h3>
@@ -168,7 +193,13 @@ export default function SettingsPage() {
                 <h3 className="font-semibold">Delete organization</h3>
                 <p className="text-slate-600 dark:text-slate-300">Permanently deletes {currentOrg.name}, all projects, scans, findings, uploads and memberships.</p>
               </div>
-              <Button variant="danger" disabled={!isOwner} onClick={() => setDeleting(true)} icon={<Trash size={16} aria-hidden="true" />}>
+              <Button
+                variant="outline"
+                className="!border-red-500/50 !text-red-600 hover:!bg-red-500/10 dark:!text-red-400"
+                disabled={!isOwner}
+                onClick={() => setDeleting(true)}
+                icon={<Trash size={16} aria-hidden="true" />}
+              >
                 Delete organization
               </Button>
             </div>
@@ -191,7 +222,7 @@ export default function SettingsPage() {
           try {
             await api.organizations.remove(currentOrg.id);
             try {
-              localStorage.removeItem('codeguard.organizationId');
+              localStorage.removeItem(ORG_STORAGE_KEY);
             } catch {
               /* ignore */
             }

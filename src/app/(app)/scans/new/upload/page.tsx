@@ -7,7 +7,8 @@ import { Suspense, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '@/components/auth';
 import { useMeta } from '@/components/meta';
 import { AiOptIn, ProjectTargetPicker, scanDestination, toTarget, useInitialTarget } from '@/components/scan-form-bits';
-import { Button, Card, CardBody, cx, FormError, Notice } from '@/components/ui';
+import { cx } from '@/components/primitives';
+import { Button, Card, CardBody, FormError, Notice } from '@/components/ui';
 import { selectionFromDataTransfer } from '@/lib/drop';
 import { buildUploadFormData, relativePathOf, totalBytes, uploadScan, validateUpload, type UploadMode, type UploadProgress, type UploadSelection } from '@/lib/upload';
 
@@ -83,7 +84,7 @@ function UploadForm() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
       <Card>
         <CardBody className="space-y-5">
           <div role="radiogroup" aria-label="Upload type" className="grid gap-2 sm:grid-cols-3">
@@ -96,15 +97,22 @@ function UploadForm() {
                 onClick={() => pick(key)}
                 disabled={busy}
                 className={cx(
-                  'rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+                  'flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
                   mode === key ? 'border-brand-500 bg-brand-500/5' : 'border-slate-200 hover:border-slate-300 dark:border-ink-600 dark:hover:border-ink-500',
                 )}
               >
-                <span className="flex items-center gap-2 font-medium">
+                <span
+                  className={cx(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                    mode === key ? 'bg-brand-600/10 text-brand-600 dark:text-brand-400' : 'bg-slate-100 text-slate-500 dark:bg-ink-700 dark:text-slate-400',
+                  )}
+                >
                   <Icon size={16} aria-hidden="true" />
-                  {label}
                 </span>
-                <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{hint}</span>
+                <span className="min-w-0">
+                  <span className="block font-medium">{label}</span>
+                  <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{hint}</span>
+                </span>
               </button>
             ))}
           </div>
@@ -135,11 +143,13 @@ function UploadForm() {
               }
             }}
             className={cx(
-              'flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors',
+              'flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors',
               dragging ? 'border-brand-500 bg-brand-500/5' : 'border-slate-300 dark:border-ink-500',
             )}
           >
-            <Upload size={28} className="text-slate-400" aria-hidden="true" />
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600/10 text-brand-600 dark:text-brand-400">
+              <Upload size={22} aria-hidden="true" />
+            </span>
             <p className="mt-3 text-sm font-medium">Drag & drop files, a folder, or an archive here</p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               or{' '}
