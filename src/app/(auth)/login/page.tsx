@@ -1,10 +1,11 @@
 'use client';
 
+import { Mail } from 'lucide-react';
 import { LoginSchema } from '../../../contracts';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { Button, Field, FormError, Input } from '@/components/ui';
+import { Button, Field, FormError, Input, PasswordInput } from '@/components/ui';
 import { api } from '@/lib/api';
 import { safeNextPath, validate, type FieldErrors } from '@/lib/validation';
 import { GithubLoginButton } from '../github-button';
@@ -55,10 +56,10 @@ function LoginForm() {
           }}
         >
           <Field htmlFor="email" label="Email" error={fieldErrors.email}>
-            <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldErrors.email} required />
+            <Input icon={<Mail size={16} />} id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldErrors.email} required />
           </Field>
           <Field htmlFor="password" label="Password" error={fieldErrors.password}>
-            <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!fieldErrors.password} required />
+            <PasswordInput id="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!fieldErrors.password} required />
           </Field>
           <div className="flex justify-end">
             <Link href="/forgot-password" className="text-sm text-brand-600 hover:underline dark:text-brand-400">

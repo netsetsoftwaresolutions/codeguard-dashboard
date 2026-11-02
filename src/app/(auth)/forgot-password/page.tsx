@@ -1,5 +1,6 @@
 'use client';
 
+import { Mail } from 'lucide-react';
 import { PasswordResetRequestSchema } from '../../../contracts';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -51,7 +52,7 @@ export default function ForgotPasswordPage() {
           }}
         >
           <Field htmlFor="email" label="Email" error={fieldError}>
-            <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldError} />
+            <Input icon={<Mail size={16} />} id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldError} />
           </Field>
           <FormError error={error} />
           <Button type="submit" size="lg" className="w-full" loading={busy}>

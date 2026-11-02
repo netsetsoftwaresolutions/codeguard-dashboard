@@ -1,10 +1,11 @@
 'use client';
 
+import { Building2, Mail, User } from 'lucide-react';
 import { RegisterSchema } from '../../../contracts';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, type ChangeEvent } from 'react';
-import { Button, Field, FormError, Input } from '@/components/ui';
+import { Button, Field, FormError, Input, PasswordInput } from '@/components/ui';
 import { api } from '@/lib/api';
 import { safeNextPath, validate, type FieldErrors } from '@/lib/validation';
 import { GithubLoginButton } from '../github-button';
@@ -58,16 +59,16 @@ function RegisterForm() {
           }}
         >
           <Field htmlFor="name" label="Name" error={fieldErrors.name}>
-            <Input id="name" autoComplete="name" value={form.name} onChange={set('name')} maxLength={100} />
+            <Input icon={<User size={16} />} id="name" autoComplete="name" value={form.name} onChange={set('name')} maxLength={100} />
           </Field>
           <Field htmlFor="email" label="Work email" error={fieldErrors.email} required>
-            <Input id="email" type="email" autoComplete="email" value={form.email} onChange={set('email')} invalid={!!fieldErrors.email} required />
+            <Input icon={<Mail size={16} />} id="email" type="email" autoComplete="email" value={form.email} onChange={set('email')} invalid={!!fieldErrors.email} required />
           </Field>
           <Field htmlFor="password" label="Password" error={fieldErrors.password} hint="At least 10 characters, with letters and numbers." required>
-            <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={set('password')} invalid={!!fieldErrors.password} required />
+            <PasswordInput id="password" autoComplete="new-password" value={form.password} onChange={set('password')} invalid={!!fieldErrors.password} required />
           </Field>
           <Field htmlFor="organizationName" label="Organization name" error={fieldErrors.organizationName} hint="Optional. A personal organization is created for you.">
-            <Input id="organizationName" value={form.organizationName} onChange={set('organizationName')} maxLength={100} />
+            <Input icon={<Building2 size={16} />} id="organizationName" value={form.organizationName} onChange={set('organizationName')} maxLength={100} />
           </Field>
           <FormError error={error} />
           <Button type="submit" size="lg" className="w-full" loading={busy}>

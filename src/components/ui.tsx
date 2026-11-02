@@ -1,7 +1,7 @@
 'use client';
 
 import { cx } from './primitives';
-import { Check, ChevronLeft, ChevronRight, CircleAlert, Copy, Info, RefreshCw, TriangleAlert, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, CircleAlert, Copy, Eye, EyeOff, Info, Lock, RefreshCw, TriangleAlert, X } from 'lucide-react';
 import Link from 'next/link';
 import {
   forwardRef,
@@ -280,12 +280,40 @@ export function Field({
   );
 }
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }>(function Input(
-  { className, invalid, ...rest },
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean; icon?: ReactNode }>(function Input(
+  { className, invalid, icon, ...rest },
   ref,
 ) {
-  return <input ref={ref} className={cx(inputBase, invalid && 'border-red-500 focus:ring-red-500/40', className)} aria-invalid={invalid || undefined} {...rest} />;
+  const input = <input ref={ref} className={cx(inputBase, invalid && 'border-red-500 focus:ring-red-500/40', !!icon && 'pl-10', className)} aria-invalid={invalid || undefined} {...rest} />;
+  if (!icon) return input;
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+        {icon}
+      </span>
+      {input}
+    </div>
+  );
 });
+
+export function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & { invalid?: boolean }) {
+  const [shown, setShown] = useState(false);
+  const Icon = shown ? EyeOff : Eye;
+  return (
+    <div className="relative">
+      <Input icon={<Lock size={16} />} {...props} type={shown ? 'text' : 'password'} className={cx('pr-11', props.className)} />
+      <button
+        type="button"
+        onClick={() => setShown((v) => !v)}
+        aria-label={shown ? 'Hide password' : 'Show password'}
+        aria-pressed={shown}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-slate-500 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-400 dark:hover:text-white"
+      >
+        <Icon size={18} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
   return <textarea ref={ref} className={cx(inputBase, 'min-h-[88px]', className)} {...rest} />;
