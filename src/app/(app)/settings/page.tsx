@@ -77,7 +77,12 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
-              <Button variant="outline" icon={<LogOut size={16} aria-hidden="true" />} onClick={() => void logout()}>
+              <Button
+                variant="outline"
+                className="border-red-500/40 text-red-600 hover:border-red-500 hover:bg-red-500/10 dark:border-red-400/40 dark:text-red-400 dark:hover:border-red-400 dark:hover:bg-red-400/10"
+                icon={<LogOut size={16} aria-hidden="true" />}
+                onClick={() => void logout()}
+              >
                 Sign out
               </Button>
             </div>
