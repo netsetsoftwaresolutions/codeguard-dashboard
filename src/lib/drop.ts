@@ -20,13 +20,24 @@ function readAllEntries(reader: FileSystemDirectoryReader): Promise<FileSystemEn
   });
 }
 
-async function walk(entry: FileSystemEntry, prefix: string, out: Collected[]): Promise<void> {
-  if (entry.isFile) {
-    const file = await new Promise<File>((resolve, reject) => (entry as FileSystemFileEntry).file(resolve, reject));
-    out.push({ file, path: `${prefix}${file.name}` });
-  } else if (entry.isDirectory) {
-    const children = await readAllEntries((entry as FileSystemDirectoryEntry).createReader());
-    for (const c of children) await walk(c, `${prefix}${entry.name}/`, out);
+export const MAX_DROP_DEPTH = 25;
+export const MAX_DROP_FILES = 10_000;
+
+async function walk(entry: FileSystemEntry, prefix: string, out: Collected[], depth = 0): Promise<void> {
+  if (depth > MAX_DROP_DEPTH || out.length >= MAX_DROP_FILES) return;
+  try {
+    if (entry.isFile) {
+      const file = await new Promise<File>((resolve, reject) => (entry as FileSystemFileEntry).file(resolve, reject));
+      out.push({ file, path: `${prefix}${file.name}` });
+    } else if (entry.isDirectory) {
+      const children = await readAllEntries((entry as FileSystemDirectoryEntry).createReader());
+      for (const c of children) {
+        if (out.length >= MAX_DROP_FILES) break;
+        await walk(c, `${prefix}${entry.name}/`, out, depth + 1);
+      }
+    }
+  } catch {
+    // Skip unreadable or broken entries (e.g. broken symlinks)
   }
 }
 

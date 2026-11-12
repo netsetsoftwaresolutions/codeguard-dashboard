@@ -1,7 +1,7 @@
 'use client';
 
 import { cx } from './primitives';
-import { Check, ChevronLeft, ChevronRight, CircleAlert, Copy, Info, RefreshCw, TriangleAlert, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, CircleAlert, Copy, Eye, EyeOff, Info, Lock, RefreshCw, TriangleAlert, X } from 'lucide-react';
 import Link from 'next/link';
 import {
   forwardRef,
@@ -17,7 +17,6 @@ import {
 } from 'react';
 import { errorMessage } from '@/lib/api';
 
-export { cx };
 
 /* ---------------------------------------------------------------- Buttons */
 
@@ -281,12 +280,40 @@ export function Field({
   );
 }
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }>(function Input(
-  { className, invalid, ...rest },
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean; icon?: ReactNode }>(function Input(
+  { className, invalid, icon, ...rest },
   ref,
 ) {
-  return <input ref={ref} className={cx(inputBase, invalid && 'border-red-500 focus:ring-red-500/40', className)} aria-invalid={invalid || undefined} {...rest} />;
+  const input = <input ref={ref} className={cx(inputBase, invalid && 'border-red-500 focus:ring-red-500/40', !!icon && 'pl-10', className)} aria-invalid={invalid || undefined} {...rest} />;
+  if (!icon) return input;
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+        {icon}
+      </span>
+      {input}
+    </div>
+  );
 });
+
+export function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & { invalid?: boolean }) {
+  const [shown, setShown] = useState(false);
+  const Icon = shown ? EyeOff : Eye;
+  return (
+    <div className="relative">
+      <Input icon={<Lock size={16} />} {...props} type={shown ? 'text' : 'password'} className={cx('pr-11', props.className)} />
+      <button
+        type="button"
+        onClick={() => setShown((v) => !v)}
+        aria-label={shown ? 'Hide password' : 'Show password'}
+        aria-pressed={shown}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-slate-500 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-400 dark:hover:text-white"
+      >
+        <Icon size={18} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
   return <textarea ref={ref} className={cx(inputBase, 'min-h-[88px]', className)} {...rest} />;
@@ -322,7 +349,7 @@ export function Checkbox({
       <input
         id={cid}
         type="checkbox"
-        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-2 focus:ring-brand-500 dark:border-ink-500 dark:bg-ink-900"
+        className={cx('mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded accent-brand-600 disabled:cursor-not-allowed dark:[color-scheme:dark]', focusRing)}
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
@@ -672,20 +699,26 @@ export function CopyButton({ value, label = 'Copy', size = 'sm' }: { value: stri
   );
 }
 
-export function StatCard({ label, value, hint, icon, href }: { label: string; value: ReactNode; hint?: ReactNode; icon?: ReactNode; href?: string }) {
+/** Joins StatCards into one panel; the 1px gap shows the background as dividers. */
+export const statGroupClass = 'grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm dark:border-ink-600 dark:bg-ink-600';
+
+export function StatCard({ label, value, hint, icon, href, footer, className }: { label: string; value: ReactNode; hint?: ReactNode; icon?: ReactNode; href?: string; footer?: ReactNode; className?: string }) {
   const inner = (
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">{value}</p>
-        {hint && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
-      </div>
-      {icon && <div className="rounded-lg bg-brand-600/10 p-2 text-brand-600 dark:text-brand-400">{icon}</div>}
-    </div>
+    <>
+      <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+        {icon && <span className="text-brand-600 dark:text-brand-400">{icon}</span>}
+        {label}
+      </p>
+      <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">{value}</span>
+        {hint && <span className="text-xs text-slate-500 dark:text-slate-400">{hint}</span>}
+      </p>
+      {footer && <div className="mt-3 flex h-5 min-w-0 items-center">{footer}</div>}
+    </>
   );
-  const cls = 'block rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-ink-600 dark:bg-ink-800';
+  const cls = cx('block bg-white px-5 py-4 dark:bg-ink-800', className);
   return href ? (
-    <Link href={href} className={cx(cls, 'transition-colors hover:border-brand-500/50', focusRing)}>
+    <Link href={href} className={cx(cls, 'transition-colors hover:bg-slate-50 dark:hover:bg-ink-700/60', focusRing)}>
       {inner}
     </Link>
   ) : (

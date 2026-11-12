@@ -173,13 +173,26 @@ function UserMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={cx('flex items-center gap-2 rounded-lg p-1 pr-2 hover:bg-slate-100 dark:hover:bg-ink-700', focusRing)}
+        className={cx('group flex cursor-pointer items-center gap-1 rounded-full p-0.5 pr-1.5', focusRing)}
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white" aria-hidden="true">
+        <span
+          className={cx(
+            'flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white ring-2 transition-shadow duration-150 motion-reduce:transition-none',
+            open ? 'ring-brand-500/50' : 'ring-transparent group-hover:ring-brand-500/30',
+          )}
+          aria-hidden="true"
+        >
           {initial}
         </span>
         <span className="sr-only">Account menu for {user.email}</span>
-        <ChevronDown size={14} className="text-slate-500" aria-hidden="true" />
+        <ChevronDown
+          size={14}
+          className={cx(
+            'transition-transform duration-150 motion-reduce:transition-none',
+            open ? 'rotate-180 text-slate-700 dark:text-slate-200' : 'text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200',
+          )}
+          aria-hidden="true"
+        />
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-ink-600 dark:bg-ink-800">

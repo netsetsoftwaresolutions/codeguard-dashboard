@@ -4,7 +4,7 @@ import { PasswordResetConfirmSchema } from '../../../contracts';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { Button, Field, FormError, Input, Notice } from '@/components/ui';
+import { Button, Field, FormError, Notice, PasswordInput } from '@/components/ui';
 import { api } from '@/lib/api';
 import { validate, type FieldErrors } from '@/lib/validation';
 
@@ -68,10 +68,10 @@ function ResetForm() {
     >
       {fieldErrors.token && <Notice tone="danger">This reset link is malformed. Request a new one.</Notice>}
       <Field htmlFor="password" label="New password" error={fieldErrors.password} hint="At least 10 characters, with letters and numbers.">
-        <Input id="password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!fieldErrors.password} />
+        <PasswordInput id="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!fieldErrors.password} />
       </Field>
       <Field htmlFor="confirm" label="Confirm new password" error={fieldErrors.confirm}>
-        <Input id="confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} invalid={!!fieldErrors.confirm} />
+        <PasswordInput id="confirm" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} invalid={!!fieldErrors.confirm} />
       </Field>
       <FormError error={error} />
       <Button type="submit" size="lg" className="w-full" loading={busy}>
