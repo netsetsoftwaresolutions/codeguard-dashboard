@@ -21,6 +21,7 @@ import {
   Pill,
   Select,
   StatCard,
+  statGroupClass,
   Switch,
   Table,
   tbodyClass,
@@ -240,12 +241,12 @@ export default function AdminPage() {
         <LoadingBlock rows={6} />
       ) : data ? (
         <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className={`${statGroupClass} sm:grid-cols-2 lg:grid-cols-5`}>
             <StatCard label="Users" value={formatNumber(data.totals.users)} />
             <StatCard label="Organizations" value={formatNumber(data.totals.organizations)} />
             <StatCard label="Projects" value={formatNumber(data.totals.projects)} />
             <StatCard label="Scans" value={formatNumber(data.totals.scans)} />
-            <StatCard label="Scans (24h)" value={formatNumber(data.scansLast24h)} />
+            <StatCard label="Scans (24h)" value={formatNumber(data.scansLast24h)} className="sm:col-span-2 lg:col-span-1" />
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             <Card>

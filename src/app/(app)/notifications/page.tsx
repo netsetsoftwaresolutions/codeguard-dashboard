@@ -95,7 +95,7 @@ export default function NotificationsPage() {
         title="Notifications"
         actions={
           <Button
-            variant="outline"
+            variant="secondary"
             disabled={!unread}
             icon={<CheckCheck size={16} aria-hidden="true" />}
             onClick={async () => {
@@ -111,7 +111,7 @@ export default function NotificationsPage() {
           </Button>
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
         <Card>
           <CardHeader
             title={`${unread} unread`}
@@ -135,7 +135,7 @@ export default function NotificationsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       {n.severity && <SeverityBadge severity={n.severity} />}
                       <p className="font-medium">
-                        {n.link && n.link.startsWith('/') ? (
+                        {n.link && n.link.startsWith('/') && !n.link.startsWith('//') && !n.link.startsWith('/\\') ? (
                           <Link href={n.link} className="hover:underline" onClick={() => !n.readAt && void markRead(n.id)}>
                             {n.title}
                           </Link>
