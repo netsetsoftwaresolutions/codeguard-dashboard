@@ -32,9 +32,12 @@ function IntegrationCard({ it, canManage, orgId, onChanged }: { it: IntegrationV
   const [error, setError] = useState<unknown>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [removeBusy, setRemoveBusy] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
   const slug = SLUGS[it.provider];
   return (
-    <Card as="article" className="flex flex-col">
+    // Card sits in row 1 (same height across the grid row); setup text sits in row 2, so only this card grows.
+    <div className="row-span-2 grid grid-rows-subgrid gap-0">
+    <Card as="article" className={`flex flex-col ${showSetup ? 'rounded-b-none border-b-0' : ''}`}>
       <div className="flex items-center justify-between gap-3 px-5 pt-5">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600/10">
@@ -102,13 +105,15 @@ function IntegrationCard({ it, canManage, orgId, onChanged }: { it: IntegrationV
         )}
         {it.configured && !canManage && <p className="text-xs text-slate-500">Only organization admins can manage integrations.</p>}
         {!it.configured && canManage && (
-          <details className="group text-xs text-slate-500 dark:text-slate-400">
-            <summary className="flex cursor-pointer list-none items-center gap-1 font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
-              <ChevronRight size={14} className="transition-transform group-open:rotate-90" aria-hidden="true" />
-              Setup details
-            </summary>
-            <p className="mt-2 leading-relaxed">{it.setupHint ?? 'The server administrator has not provided credentials for this integration.'}</p>
-          </details>
+          <button
+            type="button"
+            aria-expanded={showSetup}
+            onClick={() => setShowSetup((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+          >
+            <ChevronRight size={14} className={`transition-transform ${showSetup ? 'rotate-90' : ''}`} aria-hidden="true" />
+            Setup details
+          </button>
         )}
         {!it.configured && !canManage && <p className="text-xs text-slate-500">Not available on this server.</p>}
       </div>
@@ -135,6 +140,14 @@ function IntegrationCard({ it, canManage, orgId, onChanged }: { it: IntegrationV
         }}
       />
     </Card>
+    <div className="pb-6">
+      {showSetup && (
+        <p className="rounded-b-xl border border-t-0 border-slate-200 bg-white px-5 pb-3 text-xs leading-relaxed text-slate-500 shadow-sm dark:border-ink-600 dark:bg-ink-800 dark:text-slate-400">
+          {it.setupHint ?? 'The server administrator has not provided credentials for this integration.'}
+        </p>
+      )}
+    </div>
+    </div>
   );
 }
 
@@ -155,7 +168,7 @@ function IntegrationsInner() {
       ) : loading && !data ? (
         <LoadingBlock rows={4} />
       ) : data && data.length ? (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-x-6 md:grid-cols-2 xl:grid-cols-3">
           {data.map((it) => (
             <IntegrationCard key={it.provider} it={it} canManage={can('manageIntegrations')} orgId={orgId as string} onChanged={reload} />
           ))}

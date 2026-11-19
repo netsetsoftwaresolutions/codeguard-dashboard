@@ -13,8 +13,6 @@ dist/
 coverage/
 
 # Env (keep .env.example tracked)
-.env
-.env.local
 .env.*.local
 
 # Logs and temp
@@ -30,6 +28,6 @@ Thumbs.db
 
 # Editors
 .idea/
-.vscode/
 *.sublime-*
 .agents
+config.bat
