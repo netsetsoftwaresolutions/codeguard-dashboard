@@ -627,6 +627,7 @@ export function ConfirmDialog({
   danger = true,
   busy,
   error,
+  doneLabel,
 }: {
   open: boolean;
   onClose: () => void;
@@ -639,6 +640,8 @@ export function ConfirmDialog({
   danger?: boolean;
   busy?: boolean;
   error?: unknown;
+  /** When set, the action succeeded: the confirm button shows a tick and this label. */
+  doneLabel?: string;
 }) {
   const [typed, setTyped] = useState('');
   const id = useId();
@@ -653,11 +656,18 @@ export function ConfirmDialog({
       title={title}
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={busy}>
+          <Button variant="outline" onClick={onClose} disabled={busy || !!doneLabel}>
             Cancel
           </Button>
-          <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} disabled={!enabled} loading={busy}>
-            {confirmLabel}
+          <Button
+            variant={danger ? 'danger' : 'primary'}
+            onClick={onConfirm}
+            disabled={!enabled || !!doneLabel}
+            loading={busy && !doneLabel}
+            icon={doneLabel ? <Check size={16} aria-hidden="true" /> : undefined}
+            aria-live="polite"
+          >
+            {doneLabel ?? confirmLabel}
           </Button>
         </>
       }

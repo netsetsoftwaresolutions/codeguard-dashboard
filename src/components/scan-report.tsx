@@ -3,7 +3,7 @@
 import type { EngineRunStatus, FindingCategory, FindingClassification, ScanSummaryView, ScanView } from '../contracts';
 import { FINDING_CLASSIFICATIONS, SCAN_STAGES, SEVERITIES } from '../contracts';
 import { cx, formatBytes, ProgressBar, RiskBadge, ScanStatusBadge, SEVERITY_STYLES } from './primitives';
-import { ArrowRight, Check, ChevronRight, CircleX, GitPullRequest, LoaderCircle } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, CircleX, GitPullRequest } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { CATEGORY_LABELS, formatDateTime, formatDuration, formatNumber, humanize, PROVIDER_LABELS, safeHref, SCAN_TYPE_LABELS, shortSha, STAGE_LABELS } from '@/lib/format';
@@ -18,9 +18,10 @@ export const RISK_DISCLAIMER = 'The risk score is additive and explainable; it i
 /* ------------------------------------------------------------------ Progress */
 
 export function StageTimeline({ scan }: { scan: Pick<ScanView, 'status' | 'stage' | 'progress' | 'errorMessage'> }) {
-  const currentIdx = scan.stage ? SCAN_STAGES.indexOf(scan.stage) : -1;
   const failed = scan.status === 'FAILED' || scan.status === 'CANCELLED';
   const done = scan.status === 'COMPLETED' || scan.status === 'COMPLETED_WITH_ERRORS';
+  // A queued scan has no stage yet; show the first step as working so the timeline is never idle.
+  const currentIdx = scan.stage ? SCAN_STAGES.indexOf(scan.stage) : isTerminal(scan.status) ? -1 : 0;
   return (
     <ol className="space-y-0" aria-label="Scan stages">
       {SCAN_STAGES.map((stage, i) => {
@@ -35,13 +36,33 @@ export function StageTimeline({ scan }: { scan: Pick<ScanView, 'status' | 'stage
               className={cx(
                 'relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs',
                 state === 'done' && 'border-green-500 bg-green-500 text-white',
-                state === 'current' && 'border-brand-500 bg-brand-500/10 text-brand-600 dark:text-brand-400',
+                state === 'current' && 'border-transparent bg-brand-500/10 text-brand-600 dark:text-brand-400',
                 state === 'failed' && 'border-red-500 bg-red-500 text-white',
                 state === 'pending' && 'border-slate-300 bg-white text-slate-400 dark:border-ink-500 dark:bg-ink-800',
               )}
               aria-hidden="true"
             >
-              {state === 'done' ? <Check size={13} /> : state === 'current' ? <LoaderCircle size={13} className="animate-spin" /> : state === 'failed' ? <CircleX size={13} /> : i + 1}
+              {state === 'current' && (
+                <svg className="absolute -inset-[3px] -rotate-90 text-brand-500" viewBox="0 0 30 30" fill="none">
+                  {Array.from({ length: 8 }, (_, d) => (
+                    <circle
+                      key={d}
+                      className="step-dash"
+                      style={{ animationDelay: `${d * 0.15}s` }}
+                      cx="15"
+                      cy="15"
+                      r="14"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      pathLength={8}
+                      strokeDasharray="0.55 7.45"
+                      strokeDashoffset={-d}
+                    />
+                  ))}
+                </svg>
+              )}
+              {state === 'done' ? <Check size={13} /> : state === 'failed' ? <CircleX size={13} /> : i + 1}
             </span>
             <div className="pt-0.5 text-sm">
               <p className={cx(state === 'pending' ? 'text-slate-400 dark:text-slate-500' : 'font-medium text-slate-800 dark:text-slate-100')}>{STAGE_LABELS[stage]}</p>
@@ -69,7 +90,7 @@ export function ScanProgressCard({ scan, actions }: { scan: ScanView; actions?: 
             </span>
             <span className="font-semibold tabular-nums">{scan.progress}%</span>
           </div>
-          <ProgressBar value={scan.progress} />
+          <ProgressBar value={scan.progress} active={!isTerminal(scan.status)} />
         </div>
         <StageTimeline scan={scan} />
       </CardBody>

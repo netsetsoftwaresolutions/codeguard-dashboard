@@ -202,7 +202,11 @@ export function FindingsList({
 
   const query = useMemo(() => toFindingsQuery(filters, page, pageSize), [filters, page, pageSize]);
   const key = `${sourceKey}:${JSON.stringify(query)}`;
-  const { data, error, loading, reload, setData } = useApi(key, () => fetchPage(query));
+  const { data: fresh, error, loading, reload, setData } = useApi(key, () => fetchPage(query));
+  // Keep the previous page on screen (dimmed) while a new filter loads, so the list never collapses and the page doesn't jump.
+  const [last, setLast] = useState({ sourceKey, data: fresh });
+  if (fresh && fresh !== last.data) setLast({ sourceKey, data: fresh });
+  const data = fresh ?? (last.sourceKey === sourceKey ? last.data : undefined);
   const filtered = activeFilterCount(filters) > 0;
 
   return (

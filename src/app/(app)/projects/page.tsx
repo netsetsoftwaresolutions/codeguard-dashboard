@@ -77,7 +77,7 @@ export default function ProjectsPage() {
                   </Td>
                   <Td>
                     {p.latestScan ? (
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col items-start gap-1">
                         <ScanStatusBadge status={p.latestScan.status} />
                         <span className="text-xs text-slate-500 dark:text-slate-400">{formatRelativeTime(p.latestScan.createdAt)}</span>
                       </div>

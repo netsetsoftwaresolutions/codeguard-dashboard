@@ -59,16 +59,16 @@ function RegisterForm() {
           }}
         >
           <Field htmlFor="name" label="Name" error={fieldErrors.name}>
-            <Input icon={<User size={16} />} id="name" autoComplete="name" value={form.name} onChange={set('name')} maxLength={100} />
+            <Input icon={<User size={16} />} id="name" autoComplete="name" placeholder="Jane Doe" value={form.name} onChange={set('name')} maxLength={100} />
           </Field>
           <Field htmlFor="email" label="Work email" error={fieldErrors.email} required>
-            <Input icon={<Mail size={16} />} id="email" type="email" autoComplete="email" value={form.email} onChange={set('email')} invalid={!!fieldErrors.email} required />
+            <Input icon={<Mail size={16} />} id="email" type="email" autoComplete="email" placeholder="you@company.com" value={form.email} onChange={set('email')} invalid={!!fieldErrors.email} required />
           </Field>
           <Field htmlFor="password" label="Password" error={fieldErrors.password} hint="At least 10 characters, with letters and numbers." required>
-            <PasswordInput id="password" autoComplete="new-password" value={form.password} onChange={set('password')} invalid={!!fieldErrors.password} required />
+            <PasswordInput id="password" autoComplete="new-password" placeholder="Create a password" value={form.password} onChange={set('password')} invalid={!!fieldErrors.password} required />
           </Field>
           <Field htmlFor="organizationName" label="Organization name" error={fieldErrors.organizationName} hint="Optional. A personal organization is created for you.">
-            <Input icon={<Building2 size={16} />} id="organizationName" value={form.organizationName} onChange={set('organizationName')} maxLength={100} />
+            <Input icon={<Building2 size={16} />} id="organizationName" placeholder="Acme Inc." value={form.organizationName} onChange={set('organizationName')} maxLength={100} />
           </Field>
           <FormError error={error} />
           <Button type="submit" size="lg" className="w-full" loading={busy}>

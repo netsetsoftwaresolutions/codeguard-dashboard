@@ -82,7 +82,7 @@ export default function DashboardPage() {
               hint={running ? `${running.stage ? STAGE_LABELS[running.stage] : 'Queued'} · ${running.progress}%` : undefined}
               footer={
                 running ? (
-                  <ProgressBar value={running.progress} />
+                  <ProgressBar value={running.progress} active />
                 ) : (
                   <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                     {data.recentScans[0] ? `All idle · last scan ${formatRelativeTime(data.recentScans[0].createdAt)}` : 'No scans yet'}
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                           <span>{s.stage ? STAGE_LABELS[s.stage] : 'Queued'}</span>
                           <span className="tabular-nums">{s.progress}%</span>
                         </div>
-                        <ProgressBar value={s.progress} />
+                        <ProgressBar value={s.progress} active />
                       </div>
                     </li>
                   ))}
