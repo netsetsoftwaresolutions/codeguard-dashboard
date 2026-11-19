@@ -259,6 +259,7 @@ function ScanPageInner() {
   const [openFinding, setOpenFinding] = useState<string | null>(params.get('finding'));
   const [shareOpen, setShareOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<unknown>(null);
   const [prCounts, setPrCounts] = useState<{ newCount: number; total: number } | null>(null);
@@ -282,18 +283,32 @@ function ScanPageInner() {
   }, []);
 
   const running = !!scan && !isTerminal(scan.status);
+  // True while a just-completed scan shows every step done at 100%, before the report loads.
+  const [finishing, setFinishing] = useState(false);
 
   // Poll the cheap status endpoint every 2 s while the scan is not terminal.
   const poll = useCallback(async () => {
     try {
       const st = await api.scans.status(id);
-      if (isTerminal(st.status)) reload();
+      if (st.status === 'COMPLETED' || st.status === 'COMPLETED_WITH_ERRORS') {
+        setData((prev) => (prev ? { ...prev, status: st.status, stage: 'DONE', progress: 100 } : prev));
+        setFinishing(true);
+      } else if (isTerminal(st.status)) reload();
       else setData((prev) => (prev ? { ...prev, status: st.status, stage: st.stage, progress: st.progress, errorMessage: st.errorMessage } : prev));
     } catch {
       /* transient polling errors are ignored; the next tick retries */
     }
   }, [id, reload, setData]);
   useInterval(poll, 2000, running);
+
+  useEffect(() => {
+    if (!finishing) return;
+    const t = setTimeout(() => {
+      setFinishing(false);
+      reload();
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [finishing, reload]);
 
   useEffect(() => {
     if (!scan || scan.type !== 'PULL_REQUEST' || !isTerminal(scan.status)) return;
@@ -453,7 +468,7 @@ function ScanPageInner() {
       />
       {actionError ? <FormError error={actionError} /> : null}
 
-      {!finished ? (
+      {!finished || finishing ? (
         <ScanProgressCard scan={scan} />
       ) : (
         <div className="space-y-6">
@@ -517,12 +532,20 @@ function ScanPageInner() {
         confirmLabel="Delete scan"
         busy={actionBusy === 'delete'}
         error={actionError}
-        onConfirm={() =>
-          doAction('delete', async () => {
+        doneLabel={deleted ? 'Deleted' : undefined}
+        onConfirm={async () => {
+          // Not doAction: its finally would clear the loader just before navigation, causing a flash.
+          setActionBusy('delete');
+          setActionError(null);
+          try {
             await api.scans.remove(scan.id);
-            router.replace(`/projects/${scan.projectId}`);
-          })
-        }
+            setDeleted(true);
+            setTimeout(() => router.replace(`/projects/${scan.projectId}`), 900);
+          } catch (e) {
+            setActionError(e);
+            setActionBusy(null);
+          }
+        }}
       />
     </>
   );

@@ -53,7 +53,7 @@ export default function ScanGroupPage() {
                   <ScanStatusBadge status={s.status} />
                   <div>
                     <p className="mb-1 text-xs text-slate-500">{s.stage ? STAGE_LABELS[s.stage] : 'Queued'} · {s.progress}%</p>
-                    <ProgressBar value={isTerminal(s.status) ? 100 : s.progress} />
+                    <ProgressBar value={isTerminal(s.status) ? 100 : s.progress} active={!isTerminal(s.status)} />
                   </div>
                 </li>
               ))}

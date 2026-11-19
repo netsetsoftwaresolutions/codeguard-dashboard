@@ -56,10 +56,10 @@ function LoginForm() {
           }}
         >
           <Field htmlFor="email" label="Email" error={fieldErrors.email}>
-            <Input icon={<Mail size={16} />} id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldErrors.email} required />
+            <Input icon={<Mail size={16} />} id="email" type="email" autoComplete="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldErrors.email} required />
           </Field>
           <Field htmlFor="password" label="Password" error={fieldErrors.password}>
-            <PasswordInput id="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!fieldErrors.password} required />
+            <PasswordInput id="password" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!fieldErrors.password} required />
           </Field>
           <div className="flex justify-end">
             <Link href="/forgot-password" className="text-sm text-brand-600 hover:underline dark:text-brand-400">

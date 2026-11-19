@@ -195,8 +195,34 @@
   }
 }
 
+/* Sheen band is 40% of the track: -100% → 250% of its own width enters and fully exits the track. */
+@keyframes progress-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+/* Dim dashes; each one lights up in turn (delays staggered in scan-report.tsx), fading out behind like a trail. */
+.step-dash {
+  opacity: 0.25;
+}
+
+@keyframes step-dash {
+  0% { opacity: 1; }
+  40%, 100% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .step-dash {
+    animation: step-dash 1.2s linear infinite;
+  }
+  .progress-shimmer {
+    animation: progress-shimmer 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hero-scan-line {
+  .hero-scan-line,
+  .progress-shimmer {
     display: none;
   }
   .landing-page .landing-control,

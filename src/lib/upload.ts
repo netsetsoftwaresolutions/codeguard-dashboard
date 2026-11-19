@@ -42,7 +42,7 @@ export interface UploadValidation {
   error?: string;
 }
 
-export function validateUpload(sel: UploadSelection, maxBytes: number | null): UploadValidation {
+export function validateUpload(sel: UploadSelection, maxBytes: number | null, limitError = 'The selection exceeds the upload limit for this server.'): UploadValidation {
   if (sel.files.length === 0) return { ok: false, error: 'Select at least one file.' };
   if (sel.mode === 'archive') {
     if (sel.files.length !== 1) return { ok: false, error: 'Upload a single archive at a time.' };
@@ -52,7 +52,7 @@ export function validateUpload(sel: UploadSelection, maxBytes: number | null): U
     return { ok: false, error: 'Folder paths do not match the selected files.' };
   }
   if (maxBytes !== null && totalBytes(sel.files) > maxBytes) {
-    return { ok: false, error: `The selection exceeds the upload limit for this server.` };
+    return { ok: false, error: limitError };
   }
   return { ok: true };
 }

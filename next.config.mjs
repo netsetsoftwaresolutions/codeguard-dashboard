@@ -37,6 +37,11 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
+  // The /api rewrite forwards uploads (up to 200 MB); Next's defaults cut bodies at 10 MB and time out at 30 s.
+  experimental: {
+    middlewareClientMaxBodySize: '210mb',
+    proxyTimeout: 300_000,
+  },
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${apiInternalUrl}/api/:path*` }];
   },

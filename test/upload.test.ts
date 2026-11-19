@@ -51,6 +51,7 @@ describe('upload form data', () => {
     expect(validateUpload({ mode: 'files', files: [file('a', 60), file('b', 50)] }, 100)).toMatchObject({ ok: false });
     expect(validateUpload({ mode: 'files', files: [file('a', 60)] }, 100)).toEqual({ ok: true });
     expect(validateUpload({ mode: 'files', files: [] }, 100).ok).toBe(false);
+    expect(validateUpload({ mode: 'files', files: [file('a', 120)] }, 100, 'plan limit')).toEqual({ ok: false, error: 'plan limit' });
   });
 });
 

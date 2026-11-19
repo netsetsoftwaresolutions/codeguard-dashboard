@@ -9,7 +9,9 @@ import { useMeta } from '@/components/meta';
 import { AiOptIn, ProjectTargetPicker, scanDestination, toTarget, useInitialTarget } from '@/components/scan-form-bits';
 import { cx } from '@/components/primitives';
 import { Button, Card, CardBody, FormError, Notice } from '@/components/ui';
+import { api } from '@/lib/api';
 import { selectionFromDataTransfer } from '@/lib/drop';
+import { useApi } from '@/lib/hooks';
 import { buildUploadFormData, relativePathOf, totalBytes, uploadScan, validateUpload, type UploadMode, type UploadProgress, type UploadSelection } from '@/lib/upload';
 
 const MODES: { key: UploadMode; label: string; icon: typeof Files; hint: string }[] = [
@@ -23,7 +25,12 @@ function UploadForm() {
   const params = useSearchParams();
   const { currentOrg } = useAuth();
   const { meta } = useMeta();
-  const maxBytes = meta?.limits.maxUploadBytes ?? null;
+  const { data: sub } = useApi(currentOrg ? `subscription:${currentOrg.id}` : null, () => api.organizations.subscription(currentOrg!.id));
+  const serverMax = meta?.limits.maxUploadBytes ?? null;
+  const planMax = sub?.plan.limits.maxUploadBytes ?? null;
+  // The org's plan limit is usually lower than the server limit; check it before uploading anything.
+  const maxBytes = planMax !== null && (serverMax === null || planMax < serverMax) ? planMax : serverMax;
+  const limitError = planMax !== null && maxBytes === planMax && sub ?`Upload exceeds the ${formatBytes(planMax)} limit of the ${sub.plan.name} plan.` : undefined;
   const [mode, setMode] = useState<UploadMode>('files');
   const [selection, setSelection] = useState<UploadSelection | null>(null);
   const [target, setTarget] = useInitialTarget(params.get('projectId'));
@@ -43,7 +50,7 @@ function UploadForm() {
     folderRef.current?.setAttribute('directory', '');
   }, []);
 
-  const validation = selection ? validateUpload(selection, maxBytes) : null;
+  const validation = selection ? validateUpload(selection, maxBytes, limitError) : null;
   const bytes = selection ? totalBytes(selection.files) : 0;
   const paths = selection ? (selection.relativePaths ?? selection.files.map((f) => (selection.mode === 'folder' ? relativePathOf(f) : f.name))) : [];
 
@@ -62,7 +69,7 @@ function UploadForm() {
 
   const submit = async () => {
     if (!selection || !currentOrg) return;
-    const v = validateUpload(selection, maxBytes);
+    const v = validateUpload(selection, maxBytes, limitError);
     if (!v.ok) {
       setError(new Error(v.error));
       return;
@@ -94,16 +101,16 @@ function UploadForm() {
                 type="button"
                 role="radio"
                 aria-checked={mode === key}
-                onClick={() => pick(key)}
+                onClick={() => setMode(key)}
                 disabled={busy}
                 className={cx(
-                  'flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+                  'group flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none motion-reduce:transform-none motion-reduce:transition-none',
                   mode === key ? 'border-brand-500 bg-brand-500/5' : 'border-slate-200 hover:border-slate-300 dark:border-ink-600 dark:hover:border-ink-500',
                 )}
               >
                 <span
                   className={cx(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 ease-out group-hover:scale-110 motion-reduce:transform-none',
                     mode === key ? 'bg-brand-600/10 text-brand-600 dark:text-brand-400' : 'bg-slate-100 text-slate-500 dark:bg-ink-700 dark:text-slate-400',
                   )}
                 >
@@ -142,18 +149,24 @@ function UploadForm() {
                 setError(err);
               }
             }}
+            onClick={() => !busy && pick(mode)}
             className={cx(
-              'flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors',
+              'group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-200 hover:border-brand-500 hover:bg-brand-500/5',
               dragging ? 'border-brand-500 bg-brand-500/5' : 'border-slate-300 dark:border-ink-500',
             )}
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600/10 text-brand-600 dark:text-brand-400">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600/10 text-brand-600 transition-transform duration-200 ease-out group-hover:-translate-y-1 motion-reduce:transform-none dark:text-brand-400">
               <Upload size={22} aria-hidden="true" />
             </span>
             <p className="mt-3 text-sm font-medium">Drag & drop files, a folder, or an archive here</p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               or{' '}
-              <button type="button" className="font-medium text-brand-600 underline-offset-2 hover:underline dark:text-brand-400" onClick={() => pick(mode)}>
+              <button type="button" className="font-medium text-brand-600 underline-offset-2 hover:underline dark:text-brand-400" onClick={(e) => {
+                  e.stopPropagation();
+                  pick(mode);
+                }}
+                disabled={busy}
+              >
                 browse
               </button>
               {maxBytes !== null && <> · Maximum {formatBytes(maxBytes)} per upload</>}
@@ -190,7 +203,7 @@ function UploadForm() {
                   {formatBytes(progress.loaded)} / {formatBytes(progress.total)} ({progress.percent}%)
                 </span>
               </div>
-              <ProgressBar value={progress.percent} />
+              <ProgressBar value={progress.percent} active />
             </div>
           )}
           <FormError error={error} />
