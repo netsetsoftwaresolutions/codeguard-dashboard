@@ -423,6 +423,10 @@ export function ScanDetailsSection({ scan, summary }: { scan: ScanView; summary:
             { label: 'Scan date', value: formatDateTime(scan.createdAt) },
             { label: 'Completed', value: formatDateTime(scan.completedAt) },
             {
+              label: 'Duration',
+              value: formatDuration(scan.startedAt && scan.completedAt ? Date.parse(scan.completedAt) - Date.parse(scan.startedAt) : null),
+            },
+            {
               label: 'Files',
               value: summary ? `${formatNumber(summary.coverage.filesScanned)} scanned · ${formatNumber(summary.coverage.filesExcluded)} excluded` : '—',
             },

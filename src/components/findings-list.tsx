@@ -4,6 +4,7 @@ import type { FindingView, Paginated } from '../contracts';
 import { FINDING_CATEGORIES, FINDING_CLASSIFICATIONS, FINDING_STATUSES, SEVERITIES } from '../contracts';
 import { ClassificationBadge, EmptyState, FindingStatusBadge, findingStatusLabel, SEVERITY_STYLES, SeverityBadge } from './primitives';
 import { ChevronRight, Funnel, Search, ShieldCheck } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { api, type FindingsQuery } from '@/lib/api';
 import { activeFilterCount, EMPTY_FILTERS, toFindingsQuery, type FindingFilters } from '@/lib/findings-filter';
@@ -13,7 +14,7 @@ import type { FindingDetailView } from '@/lib/types';
 import { useAuth } from './auth';
 import { FindingDetail, locationLabel } from './finding-detail';
 import { useMeta } from './meta';
-import { Button, Checkbox, Drawer, ErrorState, focusRing, Input, LoadingBlock, Pagination, Pill, Select } from './ui';
+import { Button, Checkbox, CopyButton, Drawer, ErrorState, focusRing, Input, LoadingBlock, Pagination, Pill, Select } from './ui';
 
 const CLASSIFICATION_LABELS: Record<string, string> = {
   CONFIRMED: 'Confirmed',
@@ -147,7 +148,17 @@ export function FindingDrawer({ findingId, onClose, onUpdated }: { findingId: st
   const { can } = useAuth();
   const { data, error, loading, reload } = useApi(findingId ? `finding:${findingId}` : null, () => api.findings.get(findingId as string));
   return (
-    <Drawer open={!!findingId} onClose={onClose} label="Finding details" title={<p className="text-sm font-semibold text-slate-900 dark:text-white">Finding details</p>}>
+    <Drawer
+      open={!!findingId}
+      onClose={onClose}
+      label="Finding details"
+      title={
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">Finding details</p>
+          {data && <CopyButton value={`${window.location.origin}${window.location.pathname}?finding=${data.id}`} label="Copy link" />}
+        </div>
+      }
+    >
       {error ? (
         <ErrorState error={error} onRetry={reload} />
       ) : loading || !data ? (
@@ -182,7 +193,8 @@ export function FindingsList({
   const [internalFilters, setInternalFilters] = useState<FindingFilters>({ ...EMPTY_FILTERS, ...initialFilters });
   const filters = controlledFilters ?? internalFilters;
   const [page, setPage] = useState(1);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const linkedFindingId = useSearchParams().get('finding');
+  const [openId, setOpenId] = useState<string | null>(linkedFindingId);
 
   const filterKey = JSON.stringify(filters);
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
