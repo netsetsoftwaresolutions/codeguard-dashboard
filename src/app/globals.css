@@ -193,6 +193,15 @@
   .hero-pulse {
     animation: hero-pulse 1.6s ease-in-out infinite;
   }
+  .malware-alert {
+    animation: malware-ring 1.8s ease-out 0.4s 3;
+  }
+}
+
+/* Soft red ring that expands and fades: draws the eye on page load, then settles. */
+@keyframes malware-ring {
+  from { box-shadow: 0 0 0 0 rgb(239 68 68 / 0.45); }
+  to { box-shadow: 0 0 0 8px rgb(239 68 68 / 0); }
 }
 
 /* Sheen band is 40% of the track: -100% → 250% of its own width enters and fully exits the track. */

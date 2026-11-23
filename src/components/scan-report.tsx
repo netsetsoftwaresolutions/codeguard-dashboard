@@ -3,7 +3,7 @@
 import type { EngineRunStatus, FindingCategory, FindingClassification, ScanSummaryView, ScanView } from '../contracts';
 import { FINDING_CLASSIFICATIONS, SCAN_STAGES, SEVERITIES } from '../contracts';
 import { cx, formatBytes, ProgressBar, RiskBadge, ScanStatusBadge, SEVERITY_STYLES } from './primitives';
-import { ArrowRight, Check, ChevronRight, CircleX, GitPullRequest } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, CircleX, Bug, GitPullRequest, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { CATEGORY_LABELS, formatDateTime, formatDuration, formatNumber, humanize, PROVIDER_LABELS, safeHref, SCAN_TYPE_LABELS, shortSha, STAGE_LABELS } from '@/lib/format';
@@ -180,6 +180,31 @@ const CATEGORY_ADVICE: Record<FindingCategory, { urgent: boolean; text: string }
 
 export type ReportFilter = { severity?: string; category?: string; search?: string };
 
+const MALWARE_CATEGORIES: FindingCategory[] = ['BACKDOOR', 'MALICIOUS_PACKAGE', 'OBFUSCATION', 'REMOTE_CODE_EXECUTION', 'CREDENTIAL_THEFT', 'DATA_EXFILTRATION'];
+
+function MalwareStatus({ summary, onFilter }: { summary: ScanSummaryView; onFilter?: (f: ReportFilter) => void }) {
+  const n = MALWARE_CATEGORIES.reduce((sum, c) => sum + (summary.categoryCounts[c] ?? 0), 0);
+  // shortcut: the findings filter takes one category, so this opens the largest malware category; others stay one click away in the category chips.
+  const top = [...MALWARE_CATEGORIES].sort((a, b) => (summary.categoryCounts[b] ?? 0) - (summary.categoryCounts[a] ?? 0))[0];
+  return n > 0 ? (
+    <button
+      type="button"
+      role="alert"
+      onClick={() => onFilter?.({ category: top, severity: '', search: '' })}
+      className="malware-alert inline-flex cursor-pointer items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-red-300"
+    >
+      <Bug size={16} aria-hidden="true" />
+      Malware found · {formatNumber(n)} indicator{n === 1 ? '' : 's'}
+      <ArrowRight size={14} aria-hidden="true" />
+    </button>
+  ) : (
+    <p className="inline-flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-sm font-semibold text-green-700 dark:text-green-300">
+      <ShieldCheck size={16} aria-hidden="true" />
+      No malware detected
+    </p>
+  );
+}
+
 function verdictLines(summary: ScanSummaryView): string[] {
   const s = summary.severityCounts;
   const serious = (s.CRITICAL ?? 0) + (s.HIGH ?? 0);
@@ -302,6 +327,7 @@ export function ScanSummarySection({
                 <RiskBadge level={summary.risk.level} score={summary.risk.score} />
               </div>
               <div className="min-w-0 flex-1 space-y-2">
+                <MalwareStatus summary={summary} onFilter={onFilter} />
                 {verdictLines(summary).map((l, i) => (
                   <p key={l} className={i === 0 ? 'text-lg font-semibold text-slate-900 dark:text-slate-50' : 'text-sm text-slate-700 dark:text-slate-300'}>
                     {l}
