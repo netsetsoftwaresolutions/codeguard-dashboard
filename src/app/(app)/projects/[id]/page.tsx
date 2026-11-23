@@ -119,6 +119,7 @@ function Overview({ project }: { project: ProjectView }) {
 /* ------------------------------------------------------------------ History */
 
 function History({ projectId }: { projectId: string }) {
+  const { can } = useAuth();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const { data, error, loading, reload } = useApi(`history:${projectId}:${page}`, () => api.projects.history(projectId, page, 20));
@@ -163,7 +164,11 @@ function History({ projectId }: { projectId: string }) {
         </>
       ) : (
         <CardBody>
-          <EmptyState title="No scans yet" />
+          <EmptyState
+            title="No scans yet"
+            description="Scan this project to get its first security report."
+            action={can('scan') ? <LinkButton href={`/scans/new/repository?projectId=${projectId}`} size="sm">Start a scan</LinkButton> : undefined}
+          />
         </CardBody>
       )}
     </Card>

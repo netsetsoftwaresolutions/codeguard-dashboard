@@ -43,7 +43,18 @@ export default function ProjectsPage() {
           icon={<FolderKanban size={28} aria-hidden="true" />}
           title="No projects yet"
           description="Projects are created automatically when you start a scan, or you can create one now."
-          action={can('createProject') ? <LinkButton href="/projects/new">Create a project</LinkButton> : undefined}
+          action={
+            can('scan') || can('createProject') ? (
+              <div className="flex flex-wrap justify-center gap-2">
+                {can('scan') && <LinkButton href="/scans/new">Start a scan</LinkButton>}
+                {can('createProject') && (
+                  <LinkButton href="/projects/new" variant="outline">
+                    Create a project
+                  </LinkButton>
+                )}
+              </div>
+            ) : undefined
+          }
         />
       ) : (
         <Card>
