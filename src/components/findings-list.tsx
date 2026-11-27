@@ -8,7 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { api, type FindingsQuery } from '@/lib/api';
 import { activeFilterCount, EMPTY_FILTERS, toFindingsQuery, type FindingFilters } from '@/lib/findings-filter';
-import { CATEGORY_LABELS } from '@/lib/format';
+import { CATEGORY_LABELS, humanize } from '@/lib/format';
 import { useApi } from '@/lib/hooks';
 import type { FindingDetailView } from '@/lib/types';
 import { useAuth } from './auth';
@@ -123,6 +123,7 @@ export function FindingRow({ finding, onOpen }: { finding: FindingView; onOpen: 
           <p className="font-medium text-slate-900 group-hover:text-brand-700 dark:text-white dark:group-hover:text-brand-400">{finding.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <ClassificationBadge classification={finding.classification} />
+            <span>{humanize(finding.confidence)} confidence</span>
             <span>{CATEGORY_LABELS[finding.category]}</span>
             {loc && <code className="max-w-full truncate font-mono">{loc}</code>}
             {finding.packageName && (
